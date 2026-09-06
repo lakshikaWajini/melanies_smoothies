@@ -1,3 +1,4 @@
+# Import packages
 import streamlit as st
 import pandas as pd
 import requests
@@ -9,14 +10,10 @@ from snowflake.snowpark.functions import col
 # --------------------------------------------------
 
 st.title("Customize Your Smoothie! 🥤")
-st.write("Choose the fruits you want in your custom Smoothie!")
 
-# --------------------------------------------------
-# SNOWFLAKE CONNECTION
-# --------------------------------------------------
-
-cnx = st.connection("snowflake")
-session = cnx.session()
+st.write(
+    "Choose the fruits you want in your custom Smoothie!"
+)
 
 # --------------------------------------------------
 # CUSTOMER NAME
@@ -26,23 +23,34 @@ name_on_order = st.text_input(
     "Name on Smoothie:"
 )
 
+# --------------------------------------------------
+# SNOWFLAKE CONNECTION
+# --------------------------------------------------
+
+cnx = st.connection("snowflake")
+session = cnx.session()
+
 try:
 
     # --------------------------------------------------
-    # LOAD FRUIT DATA
+    # READ FRUIT TABLE
     # --------------------------------------------------
 
     fruit_df = (
-        session.table("SMOOTHIES.PUBLIC.FRUIT_OPTIONS")
+        session.table(
+            "SMOOTHIES.PUBLIC.FRUIT_OPTIONS"
+        )
         .select(
             col("FRUIT_NAME"),
             col("SEARCH_ON")
         )
     )
 
+    # Convert Snowpark DataFrame to Pandas DataFrame
     pd_df = fruit_df.to_pandas()
 
-    fruit_list = pd_df["FRUIT_NAME"].tolist()
+    # Fruit list for multiselect
+    my_dataframe = pd_df["FRUIT_NAME"].tolist()
 
     # --------------------------------------------------
     # MULTISELECT
@@ -50,89 +58,81 @@ try:
 
     ingredients_list = st.multiselect(
         "Choose up to 5 ingredients:",
-        fruit_list,
+        my_dataframe,
         max_selections=5
     )
 
     # --------------------------------------------------
-    # NUTRITION SECTION
+    # FRUIT LOOP
     # --------------------------------------------------
 
     if ingredients_list:
 
-        ingredients_string = ", ".join(
-            ingredients_list
-        )
-
-        st.subheader(
-            "Nutrition Information"
-        )
+        ingredients_string = ""
 
         for fruit_chosen in ingredients_list:
+
+            ingredients_string += fruit_chosen + " "
 
             search_on = pd_df.loc[
                 pd_df["FRUIT_NAME"] == fruit_chosen,
                 "SEARCH_ON"
             ].iloc[0]
 
-            if (
-                pd.isna(search_on)
-                or search_on == ""
-            ):
-                search_on = fruit_chosen
-
             st.write(
                 "The search value for",
                 fruit_chosen,
                 "is",
-                search_on
+                search_on,
+                "."
             )
 
-            api_url = (
-                f"https://my.smoothiefroot.com/api/fruit/{search_on}"
+            st.subheader(
+                fruit_chosen +
+                " Nutrition Information"
             )
 
             try:
 
-                response = requests.get(
-                    api_url,
-                    timeout=10
+                smoothiefroot_response = requests.get(
+                    f"https://my.smoothiefroot.com/api/fruit/{search_on}"
                 )
 
-                if response.status_code == 200:
+                if (
+                    smoothiefroot_response.status_code
+                    == 200
+                ):
 
                     st.dataframe(
-                        response.json(),
+                        data=smoothiefroot_response.json(),
                         use_container_width=True
                     )
 
                 else:
 
                     st.warning(
-                        f"Unable to retrieve nutrition data for {fruit_chosen}"
+                        f"No nutrition information found for {fruit_chosen}"
                     )
 
             except Exception as api_error:
 
-                st.warning(
-                    f"API error for {fruit_chosen}: {api_error}"
+                st.error(
+                    f"API Error for {fruit_chosen}: {api_error}"
                 )
 
-        st.write(
-            "Selected Ingredients:"
-        )
+        # --------------------------------------------------
+        # SHOW CHOSEN INGREDIENTS
+        # --------------------------------------------------
 
-        st.write(
-            ingredients_string
-        )
+        st.write("Selected Ingredients:")
+
+        st.write(ingredients_string)
 
         # --------------------------------------------------
         # SUBMIT ORDER
         # --------------------------------------------------
 
-        if st.button(
-            "Submit Order"
-        ):
+        if st.button("Submit Order"):
 
             if not name_on_order:
 
@@ -157,7 +157,8 @@ try:
                 )
 
                 insert_stmt = f"""
-                INSERT INTO SMOOTHIES.PUBLIC.ORDERS
+                INSERT INTO
+                SMOOTHIES.PUBLIC.ORDERS
                 (
                     INGREDIENTS,
                     NAME_ON_ORDER,
@@ -191,15 +192,18 @@ except Exception as e:
 
 st.divider()
 
-st.header(
-    "Order Management"
-)
+st.header("Order Management")
 
 try:
 
     orders_df = (
         session.table(
             "SMOOTHIES.PUBLIC.ORDERS"
+        )
+        .select(
+            col("NAME_ON_ORDER"),
+            col("INGREDIENTS"),
+            col("ORDER_FILLED")
         )
     )
 
