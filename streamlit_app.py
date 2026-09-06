@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+
 from snowflake.snowpark.functions import col
 
 # --------------------------------------------------
@@ -11,12 +12,6 @@ st.title("Customize Your Smoothie! 🥤")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
 # --------------------------------------------------
-# CUSTOMER NAME
-# --------------------------------------------------
-
-name_on_order = st.text_input("Name on Smoothie:")
-
-# --------------------------------------------------
 # SNOWFLAKE CONNECTION
 # --------------------------------------------------
 
@@ -24,10 +19,18 @@ cnx = st.connection("snowflake")
 session = cnx.session()
 
 # --------------------------------------------------
-# FRUIT SECTION
+# CUSTOMER NAME
 # --------------------------------------------------
 
+name_on_order = st.text_input(
+    "Name on Smoothie:"
+)
+
 try:
+
+    # --------------------------------------------------
+    # LOAD FRUIT DATA
+    # --------------------------------------------------
 
     fruit_df = (
         session.table("SMOOTHIES.PUBLIC.FRUIT_OPTIONS")
@@ -41,17 +44,29 @@ try:
 
     fruit_list = pd_df["FRUIT_NAME"].tolist()
 
+    # --------------------------------------------------
+    # MULTISELECT
+    # --------------------------------------------------
+
     ingredients_list = st.multiselect(
         "Choose up to 5 ingredients:",
         fruit_list,
         max_selections=5
     )
 
+    # --------------------------------------------------
+    # NUTRITION SECTION
+    # --------------------------------------------------
+
     if ingredients_list:
 
-        ingredients_string = ", ".join(ingredients_list)
+        ingredients_string = ", ".join(
+            ingredients_list
+        )
 
-        st.header("Nutrition Information")
+        st.subheader(
+            "Nutrition Information"
+        )
 
         for fruit_chosen in ingredients_list:
 
@@ -60,7 +75,10 @@ try:
                 "SEARCH_ON"
             ].iloc[0]
 
-            if pd.isna(search_on) or search_on == "":
+            if (
+                pd.isna(search_on)
+                or search_on == ""
+            ):
                 search_on = fruit_chosen
 
             st.write(
@@ -83,10 +101,6 @@ try:
 
                 if response.status_code == 200:
 
-                    st.subheader(
-                        f"{fruit_chosen} Nutrition Information"
-                    )
-
                     st.dataframe(
                         response.json(),
                         use_container_width=True
@@ -95,36 +109,52 @@ try:
                 else:
 
                     st.warning(
-                        f"No nutrition information found for {fruit_chosen}"
+                        f"Unable to retrieve nutrition data for {fruit_chosen}"
                     )
 
             except Exception as api_error:
 
                 st.warning(
-                    f"Unable to reach API for {fruit_chosen}: {api_error}"
+                    f"API error for {fruit_chosen}: {api_error}"
                 )
 
-        # --------------------------------------------------
-        # SHOW CHOSEN INGREDIENTS
-        # --------------------------------------------------
+        st.write(
+            "Selected Ingredients:"
+        )
 
-        st.write("Selected Ingredients:")
-        st.write(ingredients_string)
+        st.write(
+            ingredients_string
+        )
 
         # --------------------------------------------------
         # SUBMIT ORDER
         # --------------------------------------------------
 
-        if st.button("Submit Order"):
+        if st.button(
+            "Submit Order"
+        ):
 
             if not name_on_order:
 
-                st.warning("Please enter a name.")
+                st.warning(
+                    "Please enter a name."
+                )
 
             else:
 
-                safe_name = name_on_order.replace("'", "''")
-                safe_ingredients = ingredients_string.replace("'", "''")
+                safe_name = (
+                    name_on_order.replace(
+                        "'",
+                        "''"
+                    )
+                )
+
+                safe_ingredients = (
+                    ingredients_string.replace(
+                        "'",
+                        "''"
+                    )
+                )
 
                 insert_stmt = f"""
                 INSERT INTO SMOOTHIES.PUBLIC.ORDERS
@@ -141,7 +171,9 @@ try:
                 )
                 """
 
-                session.sql(insert_stmt).collect()
+                session.sql(
+                    insert_stmt
+                ).collect()
 
                 st.success(
                     f"✅ Your Smoothie is ordered, {name_on_order}!"
@@ -159,12 +191,16 @@ except Exception as e:
 
 st.divider()
 
-st.header("Order Management")
+st.header(
+    "Order Management"
+)
 
 try:
 
     orders_df = (
-        session.table("SMOOTHIES.PUBLIC.ORDERS")
+        session.table(
+            "SMOOTHIES.PUBLIC.ORDERS"
+        )
     )
 
     st.dataframe(
@@ -173,9 +209,15 @@ try:
     )
 
     unfilled_orders = (
-        session.table("SMOOTHIES.PUBLIC.ORDERS")
-        .filter(col("ORDER_FILLED") == False)
-        .select(col("NAME_ON_ORDER"))
+        session.table(
+            "SMOOTHIES.PUBLIC.ORDERS"
+        )
+        .filter(
+            col("ORDER_FILLED") == False
+        )
+        .select(
+            col("NAME_ON_ORDER")
+        )
         .collect()
     )
 
@@ -191,7 +233,9 @@ try:
             order_names
         )
 
-        if st.button("✅ Mark Order as Filled"):
+        if st.button(
+            "✅ Mark Order as Filled"
+        ):
 
             update_stmt = f"""
             UPDATE SMOOTHIES.PUBLIC.ORDERS
@@ -200,7 +244,9 @@ try:
             '{selected_order.replace("'", "''")}'
             """
 
-            session.sql(update_stmt).collect()
+            session.sql(
+                update_stmt
+            ).collect()
 
             st.success(
                 f"Order for {selected_order} marked as filled."
@@ -210,7 +256,9 @@ try:
 
     else:
 
-        st.info("No open orders found.")
+        st.info(
+            "No open orders found."
+        )
 
 except Exception as e:
 
