@@ -50,7 +50,7 @@ try:
     pd_df = fruit_df.to_pandas()
 
     # Fruit list for multiselect
-    # my_dataframe = pd_df["FRUIT_NAME"].tolist()
+      my_dataframe = pd_df["FRUIT_NAME"].tolist()
 
     # --------------------------------------------------
     # MULTISELECT
