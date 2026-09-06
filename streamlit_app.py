@@ -38,7 +38,8 @@ try:
 
         for fruit_chosen in ingredients_list;
             ingredient_string += fruit_chosen + ''
-            smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
+            st.subheader(fruit_chosen + 'Nutrition Information')
+            smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/" + fruit_chosen)  
             sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width = True)
 
             
@@ -70,5 +71,3 @@ except Exception as e:
 
 
  
-smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
-sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width = True)
