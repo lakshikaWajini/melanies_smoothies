@@ -1,7 +1,7 @@
 # Import packages
 import streamlit as st
 from snowflake.snowpark.functions import col
-
+import requests 
 # Page title
 st.title("Customize Your Smoothie! 🥤")
 st.write("Choose the fruits you want in your custom Smoothie!")
@@ -34,8 +34,14 @@ try:
 
     # Process order
     if ingredients_list:
+        ingredients_string = " "
 
-        ingredients_string = ", ".join(ingredients_list)
+        for fruit_chosen in ingredients_list;
+            ingredient_string += fruit_chosen + ''
+            smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
+            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width = True)
+
+            
 
         st.write("Selected ingredients:")
         st.write(ingredients_string)
@@ -62,8 +68,7 @@ try:
 except Exception as e:
     st.error(f"Error: {e}")
 
-#new section to  display smoothiefroot nutrition information
-import requests  
+
+ 
 smoothiefroot_response = requests.get("[https://my.smoothiefroot.com/api/fruit/watermelon](https://my.smoothiefroot.com/api/fruit/watermelon)")  
-#st.text(smoothiefroot_response.json())
 sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width = True)
